@@ -11,7 +11,6 @@ import com.qualcomm.robotcore.hardware.DcMotor;
  *   Left stick         - drive forward/back and strafe (relative to the robot)
  *   Right stick X      - rotate
  *   Hold right bumper  - slow mode
- *   Hold X / Y / A / B - wheel test: spin front-left / front-right / back-left / back-right forward
  */
 @TeleOp(name = "Prototype TeleOp", group = "Prototype")
 public class PrototypeTeleOp extends LinearOpMode {
@@ -19,7 +18,6 @@ public class PrototypeTeleOp extends LinearOpMode {
     static final double SLOW_MODE_SPEED = 0.4;
     // Mecanum wheels strafe less efficiently than they drive forward.
     static final double STRAFE_CORRECTION = 1.1;
-    static final double WHEEL_TEST_POWER = 0.3;
 
     private DcMotor frontLeftDrive;
     private DcMotor frontRightDrive;
@@ -62,28 +60,16 @@ public class PrototypeTeleOp extends LinearOpMode {
             double backLeftPower = (y - x + rx) / denominator * speed;
             double frontRightPower = (y - x - rx) / denominator * speed;
             double backRightPower = (y + x - rx) / denominator * speed;
-
-            // Wheel test: each held button spins one wheel forward so names, ports, and directions can be checked.
-            boolean wheelTest = gamepad1.x || gamepad1.y || gamepad1.a || gamepad1.b;
-            if (wheelTest) {
-                frontLeftPower = gamepad1.x ? WHEEL_TEST_POWER : 0;
-                frontRightPower = gamepad1.y ? WHEEL_TEST_POWER : 0;
-                backLeftPower = gamepad1.a ? WHEEL_TEST_POWER : 0;
-                backRightPower = gamepad1.b ? WHEEL_TEST_POWER : 0;
-            }
-
             frontLeftDrive.setPower(frontLeftPower);
             backLeftDrive.setPower(backLeftPower);
             frontRightDrive.setPower(frontRightPower);
             backRightDrive.setPower(backRightPower);
 
-            telemetry.addData("Drive mode", wheelTest ? "WHEEL TEST" : "ROBOT");
             telemetry.addData("Slow mode", slowMode ? "ON" : "OFF");
             telemetry.addData("Front L/R", "%.2f / %.2f", frontLeftPower, frontRightPower);
             telemetry.addData("Back  L/R", "%.2f / %.2f", backLeftPower, backRightPower);
             telemetry.addLine();
             telemetry.addLine("Hold RB: slow mode");
-            telemetry.addLine("Wheel test: X=FL  Y=FR  A=BL  B=BR");
             telemetry.update();
         }
     }
