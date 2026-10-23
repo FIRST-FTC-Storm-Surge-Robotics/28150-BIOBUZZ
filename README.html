@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A practical guide to team 28150's BIOBUZZ robot code, mecanum drive, FTC SDK architecture, and development workflow.">
+<title>28150 BIOBUZZ — Repository Guide</title>
+<style>
+:root{color-scheme:light;--ink:#162b35;--muted:#48606c;--line:#ccdadd;--green:#00694f;--paper:#fff;--wash:#eef5f3}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}body{margin:0;background:var(--wash);color:var(--ink);font:17px/1.65 system-ui,sans-serif}a{color:var(--green);text-underline-offset:3px}a:hover{text-decoration-thickness:2px}a:focus-visible,summary:focus-visible{outline:3px solid #d78500;outline-offset:4px}header{background:#123c39;color:white;padding:64px max(24px,calc((100vw - 1180px)/2)) 48px}header code{background:#284f4b;color:#fff}header p{max-width:760px;color:#d5e9e3}.eyebrow{font-size:13px;font-weight:750;letter-spacing:.14em;text-transform:uppercase}h1{font-size:clamp(36px,6vw,64px);line-height:1.08;letter-spacing:-.04em;margin:16px 0 24px}h2{font-size:29px;line-height:1.25;letter-spacing:-.025em;margin:0 0 20px}h3{font-size:20px;margin:28px 0 10px}p{margin:12px 0 18px}.layout{display:grid;grid-template-columns:225px minmax(0,1fr);gap:40px;max-width:1228px;margin:auto;padding:36px 24px 72px}nav{position:sticky;top:24px;align-self:start;font-size:14px}nav strong{display:block;margin-bottom:12px}nav a{display:block;padding:6px 0}main{min-width:0}section{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:32px;margin-bottom:24px}.note{border-left:4px solid var(--green);background:var(--wash);padding:16px 20px;margin:20px 0}.meta{font-size:14px;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0}.stat{padding:16px;background:var(--wash);border-radius:8px}.stat b{display:block;font-size:24px}code{font: .88em/1.5 ui-monospace,monospace;overflow-wrap:anywhere;background:#eaf0ef;padding:2px 5px;border-radius:3px}pre{overflow:auto;background:#142d34;color:#e7f4ee;padding:20px;border-radius:8px;font-size:14px;line-height:1.65}pre code{background:none;color:inherit;padding:0;overflow-wrap:normal}table{width:100%;border-collapse:collapse;font-size:15px}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--line)}th{background:var(--wash)}.table-scroll{overflow-x:auto}li{margin:8px 0}ul,ol{padding-left:24px}.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:20px 0}.flow span{background:var(--wash);border:1px solid var(--line);border-radius:6px;padding:10px 12px}.flow i{font-style:normal;color:var(--green)}summary{cursor:pointer;font-weight:650;padding:12px 0}details{border-top:1px solid var(--line)}footer{font-size:14px;color:var(--muted);padding:0 8px} @media(max-width:850px){.layout{grid-template-columns:1fr;gap:24px}nav{position:static;display:flex;flex-wrap:wrap;gap:4px 20px}nav strong{width:100%}section{padding:24px}.grid{grid-template-columns:1fr}header{padding:40px 24px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media print{body{background:white;font-size:11pt}header{background:white;color:black;padding:0}header p{color:black}nav{display:none}.layout{display:block;padding:20px 0}section{border:0;padding:12px 0;break-inside:auto}pre{white-space:pre-wrap;background:#eee;color:black}a{color:black}h2,h3{break-after:avoid}}
+</style>
+</head>
+<body>
+<header>
+<div class="eyebrow">FIRST Tech Challenge · Team 28150 · BIOBUZZ</div>
+<h1>From joystick<br>to robot motion.</h1>
+<p>A guide to the repository: what the code does today, how the FTC application fits together, and how to make changes that can be reviewed and tested on the robot.</p>
+<p class="meta" style="color:#d5e9e3">Source snapshot: <code>acdb6db</code> · Reviewed October 22, 2026 · FTC SDK 12.0</p>
+</header>
+<div class="layout">
+<nav aria-label="Guide contents">
+<strong>Inside this guide</strong>
+<a href="#overview">01 / What is here</a><a href="#map">02 / Repository map</a><a href="#architecture">03 / How it runs</a><a href="#hardware">04 / Hardware &amp; controls</a><a href="#drive">05 / Drive calculations</a><a href="#setup">06 / Build &amp; deploy</a><a href="#changes">07 / Making changes</a><a href="#verification">08 / Verification</a><a href="#troubleshooting">09 / Troubleshooting</a><a href="#next">10 / Future development</a><a href="#sources">11 / Source references</a>
+</nav>
+<main>
+<section id="overview">
+<h2>01 / What is here</h2>
+<p>This repository builds an Android <strong>Robot Controller</strong> application for team 28150. It is based on the public FTC SDK for the BIOBUZZ 2026–2027 season. The team's custom behavior currently lives in <a href="TeamCode/src/main/java/org/firstinspires/ftc/teamcode/PrototypeTeleOp.java"><code>PrototypeTeleOp.java</code></a>: a driver-operated, robot-centric mecanum drivetrain.</p>
+<div class="grid"><div class="stat"><b>1</b>team Java OpMode</div><div class="stat"><b>4</b>drive motors</div><div class="stat"><b>40%</b>slow-mode power scale</div></div>
+<p>The code reads the first gamepad, mixes translation and rotation into four wheel powers, and sends those commands through the FTC hardware APIs. It also reports commanded powers and slow-mode status to the Driver Station.</p>
+<p>There is no team autonomous routine, field-relative control, IMU integration, vision pipeline, mechanism control, or encoder-based navigation in the current team code. The SDK includes examples of many of these features; their presence does not mean the robot uses them.</p>
+<div class="note"><strong>Documentation distinction.</strong> The existing <a href="README.md">README.md</a> is largely SDK documentation and release history. The TeamCode template readme still says the module is empty; the actual Java source contains the prototype described here. This guide documents that source.</div>
+</section>
+<section id="map">
+<h2>02 / Repository map</h2>
+<div class="table-scroll"><table><thead><tr><th>Path</th><th>Responsibility</th><th>When to edit</th></tr></thead><tbody>
+<tr><td><a href="TeamCode/src/main/java/org/firstinspires/ftc/teamcode/PrototypeTeleOp.java">TeamCode/…/PrototypeTeleOp.java</a></td><td>Motor setup, controller mapping, mecanum mixing, telemetry.</td><td>Driving behavior and tuning.</td></tr>
+<tr><td><a href="TeamCode/build.gradle">TeamCode/build.gradle</a></td><td>Android application module; imports shared build configuration and depends on FtcRobotController.</td><td>Team-specific build customizations or dependencies.</td></tr>
+<tr><td><a href="FtcRobotController/">FtcRobotController/</a></td><td>Android library containing controller activity, app resources, SDK integration, examples, and utilities.</td><td>Usually leave SDK infrastructure intact.</td></tr>
+<tr><td><a href="FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/external/samples/">FtcRobotController/…/external/samples/</a></td><td>Reference OpModes for sensors, driving, vision, and SDK concepts.</td><td>Copy a suitable example into TeamCode before adapting it.</td></tr>
+<tr><td><a href="settings.gradle">settings.gradle</a></td><td>Includes the two Gradle modules and plugin repositories.</td><td>Only for deliberate project structure changes.</td></tr>
+<tr><td><a href="build.common.gradle">build.common.gradle</a></td><td>Shared Android settings, Java language level, APK signing, architectures, version extraction.</td><td>Prefer TeamCode overrides for team customization.</td></tr>
+<tr><td><a href="build.dependencies.gradle">build.dependencies.gradle</a></td><td>FTC 12.0.0 artifacts and AndroidX AppCompat dependency.</td><td>Coordinated SDK upgrades.</td></tr>
+<tr><td><a href="build.gradle">build.gradle</a> / <a href="gradle/wrapper/gradle-wrapper.properties">gradle/wrapper/</a></td><td>Android Gradle Plugin and pinned Gradle distribution.</td><td>Coordinated toolchain upgrades.</td></tr>
+<tr><td><a href="TeamCode/src/main/AndroidManifest.xml">TeamCode manifest</a> / <a href="FtcRobotController/src/main/AndroidManifest.xml">controller manifest</a></td><td>Team app manifest merges controller activities, services, permissions, and metadata.</td><td>Only for an actual Android integration requirement.</td></tr>
+<tr><td><a href="libs/">libs/</a>, <a href="doc/">doc/</a>, <a href="LICENSE">LICENSE</a></td><td>FTC debug keystore, supporting documents, and license terms.</td><td>Preserve notices and required build assets.</td></tr>
+<tr><td><a href=".gitignore">.gitignore</a></td><td>Excludes local SDK paths, IDE state, Gradle output, and APKs.</td><td>When adding generated tooling artifacts.</td></tr>
+</tbody></table></div>
+<p>Most FTC implementation classes arrive as Maven dependencies, rather than source files in this repository. In particular, <code>LinearOpMode</code>, <code>DcMotor</code>, and the hardware runtime come from the SDK.</p>
+</section>
+<section id="architecture">
+<h2>03 / How it runs</h2>
+<h3>Build-time structure</h3>
+<div class="flow" aria-label="Build flow"><span>TeamCode app + team Java</span><i aria-hidden="true">→</i><span>FtcRobotController library</span><i aria-hidden="true">→</i><span>FTC Maven dependencies</span><i aria-hidden="true">→</i><span>Robot Controller APK</span></div>
+<p><code>TeamCode</code> is the installable application module, even though <code>FtcRobotController</code> has the controller-oriented name. The app ID is <code>com.qualcomm.ftcrobotcontroller</code>. The shared build reads app version <code>12.0</code> and version code <code>63</code> from the controller manifest.</p>
+<h3>Runtime structure</h3>
+<p>The Android launcher enters <code>PermissionValidatorWrapper</code>; the controller activity sets up the controller UI and SDK services. Its startup processes classes for OpMode discovery and creates the FTC event loop using the selected hardware configuration. The SDK manages communication with the Driver Station and exposes gamepad inputs, hardware objects, and telemetry to the team code.</p>
+<div class="flow" aria-label="Control flow"><span>Driver Station / gamepad</span><i aria-hidden="true">→</i><span>FTC runtime</span><i aria-hidden="true">→</i><span>PrototypeTeleOp</span><i aria-hidden="true">→</i><span>DcMotor commands</span></div>
+<p>The annotation <code>@TeleOp(name = "Prototype TeleOp", group = "Prototype")</code> makes the class discoverable in the Driver Station's TeleOp list. There is no <code>@Disabled</code> annotation. The SDK's manual registration file is intentionally empty; normal team OpModes use annotations.</p>
+<h3>The OpMode lifecycle</h3>
+<ol><li><strong>INIT:</strong> <code>runOpMode()</code> retrieves all four motors by name, applies directions, enables BRAKE, and selects RUN_WITHOUT_ENCODER.</li><li><strong>Ready:</strong> telemetry displays “Initialized. Press START.” The call to <code>waitForStart()</code> waits for the start signal.</li><li><strong>START:</strong> while <code>opModeIsActive()</code>, the code reads gamepad1, calculates power, writes all four motors, and updates telemetry.</li><li><strong>STOP:</strong> the active loop exits and the FTC runtime handles OpMode shutdown. The class contains no separate cleanup method or explicit final zero-power block.</li></ol>
+<p>A robot's selected device configuration is an external runtime input. No tracked robot configuration in this checkout defines motor ports or hub assignments. Those must be checked on the actual controller.</p>
+</section>
+<section id="hardware">
+<h2>04 / Hardware &amp; controls</h2>
+<p>Hardware names are a contract: each string below must match a configured <code>DcMotor</code> device exactly. Names identify logical wheel positions; physical port numbers are not specified in the source.</p>
+<div class="table-scroll"><table><thead><tr><th>Configuration name</th><th>Logical location</th><th>Direction in code</th></tr></thead><tbody>
+<tr><td><code>frontLeftDrive</code></td><td>Front left</td><td>REVERSE</td></tr><tr><td><code>frontRightDrive</code></td><td>Front right</td><td>REVERSE</td></tr><tr><td><code>backLeftDrive</code></td><td>Back left</td><td>REVERSE</td></tr><tr><td><code>backRightDrive</code></td><td>Back right</td><td>FORWARD</td></tr>
+</tbody></table></div>
+<p>All four use <code>BRAKE</code> for zero-power behavior and <code>RUN_WITHOUT_ENCODER</code>. Braking resists coasting; it does not implement position holding. This program does not read encoder positions or regulate wheel velocity with feedback.</p>
+<div class="table-scroll"><table><thead><tr><th>gamepad1 input</th><th>Behavior</th></tr></thead><tbody>
+<tr><td>Left stick Y</td><td>Forward/backward; the raw Y value is negated.</td></tr><tr><td>Left stick X</td><td>Strafe; the raw X value is negated and multiplied by 1.1.</td></tr><tr><td>Right stick X</td><td>Rotation input.</td></tr><tr><td>Hold right bumper</td><td>Scale final wheel commands to 0.4. Releasing restores 1.0.</td></tr>
+</tbody></table></div>
+<div class="note"><strong>Robot-specific setup:</strong> three motors are reversed, and strafe has an extra sign inversion. The source comment says this drivetrain strafes opposite to the standard mecanum layout. Preserve these choices until physical testing supports a change. The repository does not establish wheel roller orientation or wiring.</div>
+<p>“Robot-centric” means translation stays relative to the chassis. After the robot turns, pushing forward drives toward its new front. There is no heading measurement or coordinate rotation to keep commands aligned with the field.</p>
+</section>
+<section id="drive">
+<h2>05 / Drive calculations</h2>
+<p>Each loop begins with three inputs and one power scale:</p>
+<pre><code>y  = -gamepad1.left_stick_y
+x  = -gamepad1.left_stick_x * 1.1
+rx =  gamepad1.right_stick_x
+speed = gamepad1.right_bumper ? 0.4 : 1.0
+
+denominator = max(abs(y) + abs(x) + abs(rx), 1)
+
+frontLeftPower  = (y + x + rx) / denominator * speed
+backLeftPower   = (y - x + rx) / denominator * speed
+frontRightPower = (y - x - rx) / denominator * speed
+backRightPower  = (y + x - rx) / denominator * speed</code></pre>
+<p>Forward motion contributes equally to all wheel commands. Strafe contributes opposite signs to the two diagonals. Rotation contributes opposite signs to the left and right sides. Dividing by the common denominator preserves the mix while keeping command magnitudes at or below the selected power scale.</p>
+<p>The <code>1.1</code> strafe correction increases strafe contribution before normalization. At full pure strafe, normalization brings commands back to magnitude 1; it does not produce 110% motor power. Slow mode multiplies the normalized values, so 40% describes commanded power, not a guaranteed physical speed.</p>
+<div class="table-scroll"><table><thead><tr><th>Raw stick input, normal mode</th><th>FL</th><th>FR</th><th>BL</th><th>BR</th></tr></thead><tbody>
+<tr><td>Left Y = −1; others 0</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>Left X = +1; others 0</td><td>−1</td><td>1</td><td>1</td><td>−1</td></tr>
+<tr><td>Right X = +1; others 0</td><td>1</td><td>−1</td><td>1</td><td>−1</td></tr>
+<tr><td>Left Y = −1, right X = +1; left X = 0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr>
+</tbody></table></div>
+<p>These are logical <code>setPower()</code> values, before configured motor direction affects physical rotation. With the bumper held, multiply every entry by 0.4. Actual movement depends on wheel installation, wiring, load, and traction.</p>
+<p>Telemetry reports the calculated powers, not measured wheel speed. The current loop has no custom joystick deadband, acceleration limiting, heading hold, or closed-loop correction.</p>
+</section>
+<section id="setup">
+<h2>06 / Build &amp; deploy</h2>
+<p>Open the repository root in Android Studio. The checked-in SDK README requires <strong>Android Studio Narwhal 3 Feature Drop or later</strong>. Use a compatible Gradle JDK; <a href="https://developer.android.com/build/releases/agp-8-13-0-release-notes">Android Gradle Plugin 8.13 lists JDK 17 as its minimum and default</a>; select a JDK compatible with both the plugin and the pinned Gradle wrapper. Java source and target compatibility remain Java 8 in this project. A language level of 8 does not mean Gradle runs on JDK 8.</p>
+<div class="table-scroll"><table><thead><tr><th>Setting</th><th>Checked-in value</th><th>Source</th></tr></thead><tbody>
+<tr><td>FTC libraries</td><td>12.0.0</td><td>build.dependencies.gradle</td></tr><tr><td>Android Gradle Plugin</td><td>8.13.2</td><td>build.gradle</td></tr><tr><td>Gradle wrapper</td><td>9.1.0</td><td>gradle-wrapper.properties</td></tr><tr><td>Android SDK</td><td>compile 30 / min 24 / target 28</td><td>Shared and controller build files</td></tr><tr><td>NDK</td><td>21.3.6528147</td><td>build.common.gradle</td></tr><tr><td>Native architectures</td><td>armeabi-v7a, arm64-v8a</td><td>build.common.gradle</td></tr>
+</tbody></table></div>
+<ol><li>Let Android Studio sync Gradle and resolve dependencies from Google Maven and Maven Central. Install requested Android SDK components and the configured NDK if required by the build.</li><li>Set the local SDK location through Android Studio or an ignored <code>local.properties</code> file containing <code>sdk.dir=/your/android/sdk</code>. For terminal builds, configure <code>JAVA_HOME</code> or make the JDK available on PATH.</li><li>Build the <code>TeamCode</code> module using the wrapper, rather than a separately installed Gradle.</li><li>Connect the intended Robot Controller device through the team's supported ADB connection, select the <code>TeamCode</code> run configuration and correct device, and deploy from Android Studio.</li><li>On the robot, select the correct hardware configuration. From the Driver Station, choose <strong>Prototype TeleOp</strong>, initialize, inspect telemetry, then start under controlled test conditions.</li></ol>
+<pre><code># Run from the repository root on Linux/macOS:
+./gradlew :TeamCode:assembleDebug
+./gradlew :TeamCode:lintDebug
+
+# Install only when the intended controller is connected and selected:
+./gradlew :TeamCode:installDebug
+
+# Windows: use .\gradlew.bat in place of ./gradlew</code></pre>
+<p>The conventional debug APK output is <code>TeamCode/build/outputs/apk/debug/TeamCode-debug.apk</code>. The build uses the checked-in FTC debug keystore for debug signing and, unless signing environment variables are supplied, as the release fallback. Keep private signing credentials outside tracked files.</p>
+<div class="note"><strong>Build verification for this guide:</strong> <code>./gradlew :TeamCode:assembleDebug</code> was attempted on October 22, 2026, but stopped because no Java executable or JAVA_HOME was available. Compilation, dependency resolution, and device deployment have therefore not been verified in this environment. The commands above are the intended workflow, not a claim that this checkout has built successfully.</div>
+</section>
+<section id="changes">
+<h2>07 / Making changes</h2>
+<h3>Choose the right place</h3>
+<p>Make robot behavior changes under <code>TeamCode/src/main/java/org/firstinspires/ftc/teamcode/</code>. Keep the package declaration consistent with that path. For a new OpMode, copy a relevant SDK sample, rename the public class and file together, set a distinct <code>@TeleOp</code> or <code>@Autonomous</code> name, and remove <code>@Disabled</code> only when it should be selectable. Avoid manual registration changes.</p>
+<div class="table-scroll"><table><thead><tr><th>Requested change</th><th>Implementation approach</th><th>What to verify</th></tr></thead><tbody>
+<tr><td>Adjust precision driving</td><td>Tune <code>SLOW_MODE_SPEED</code>; keep its intended range between 0 and 1.</td><td>Bumper held/released, steering feel, combined commands.</td></tr>
+<tr><td>Tune strafing</td><td>Adjust <code>STRAFE_CORRECTION</code> after checking wheel installation and motor direction.</td><td>Left/right movement and diagonal balance, not just pure full-power strafe.</td></tr>
+<tr><td>Rename a motor</td><td>Update the exact hardwareMap string and the robot's selected device configuration together.</td><td>INIT succeeds and the correct physical wheel responds.</td></tr>
+<tr><td>Add an intake or lift</td><td>Add its hardware mapping, initialization, controller mapping, limits, and telemetry in TeamCode.</td><td>Independent operation, travel limits, neutral and STOP behavior.</td></tr>
+<tr><td>Add autonomous or field-relative drive</td><td>Create and test a dedicated OpMode; introduce required sensor setup and calibration explicitly.</td><td>Heading conventions, timeouts, stop responsiveness, repeatability.</td></tr>
+<tr><td>Upgrade SDK</td><td>Treat toolchain, shared dependencies, sample API changes, and controller compatibility as one reviewed upgrade.</td><td>Full sync/build, Driver Station compatibility, regression on hardware.</td></tr>
+</tbody></table></div>
+<h3>Keep changes reviewable</h3>
+<ol><li><strong>Record the starting state.</strong> Inspect staged, unstaged, and untracked files before editing. Files with pre-existing changes are off limits unless the user explicitly authorizes those files; ask if the task depends on one. This checkout was clean before this guide was added.</li><li><strong>Make one coherent change.</strong> Explain the expected behavior and update control documentation or configuration instructions when they change. As the robot grows, shared hardware setup and drive calculations can move into small reusable classes; that refactor has not happened yet.</li><li><strong>Run appropriate checks.</strong> Compile and lint Java or build changes. Inspect documentation layout and links for HTML changes. For motor behavior, complete the physical checks below; compilation alone cannot establish correct motion.</li><li><strong>Review exactly what will ship.</strong> Stage explicit paths only, inspect the staged diff and commit contents, and preserve unrelated staged changes. Use a path-scoped commit when necessary.</li><li><strong>Commit and push completed work.</strong> Follow the session's Git rules: push to the configured upstream after checks, without a separate request. Never force-push or rewrite commits. Ask before publishing unrelated pre-existing unpushed commits. Report missing repository, remote, upstream, or authentication as a blocker instead of creating or guessing a destination.</li></ol>
+<pre><code># Starting state and upstream review
+ git status --short
+ git diff
+ git diff --cached
+ git branch -vv
+ git log --oneline @{upstream}..HEAD
+
+# After editing and checking a single intended file
+ git add TeamCode/src/main/java/org/firstinspires/ftc/teamcode/PrototypeTeleOp.java
+ git diff --cached
+ git commit -m "Describe the robot behavior change"
+ git show --stat --oneline HEAD
+ git push</code></pre>
+<p>The example commit command assumes the index contains only the intended task changes. Use explicit path-scoped commit handling if unrelated staged work is present. Do not use blanket staging such as <code>git add .</code> or <code>git add -A</code>.</p>
+<p>At this snapshot, <code>master</code> tracks <code>origin/master</code> at <a href="https://github.com/FIRST-FTC-Storm-Surge-Robotics/28150-BIOBUZZ">FIRST-FTC-Storm-Surge-Robotics/28150-BIOBUZZ</a>. This guide recommends small changes and review, but the checkout contains no AGENTS.md, tracked CI workflow, or repository-specific pull request procedure. Git rules in this section reflect the instructions provided for this documentation task; branch protection and organization policies are not established by the source files.</p>
+</section>
+<section id="verification">
+<h2>08 / Verification</h2>
+<h3>Software checks</h3>
+<p>No dedicated unit or instrumentation test suite was found. The files named <code>UtilityTestHardware</code> and <code>UtilityTestGamepad</code> are SDK diagnostic OpModes, not automated tests. There is also no tracked CI workflow in this checkout. Use <code>:TeamCode:assembleDebug</code> for compilation and <code>:TeamCode:lintDebug</code> for Android static analysis; record environment blockers and existing failures accurately.</p>
+<p>If drive mixing is later extracted into a pure calculation method, useful automated tests would check normalization, zero input, rotation/strafe signs, combined axes, and the 0.4 scale. They would verify arithmetic, while actual wheel behavior still needs robot testing.</p>
+<h3>Robot acceptance sequence</h3>
+<ol><li><strong>Before START:</strong> confirm the device, APK, hardware configuration, motor names, physical wheel mapping, and accessible STOP control. For initial direction checks, securely support the robot with wheels clear and keep people clear of moving parts.</li><li><strong>INIT:</strong> confirm the ready message and no hardware lookup errors. All four mappings must resolve before driving starts.</li><li><strong>Neutral:</strong> start with sticks released; confirm no commanded motion. This program adds no custom deadband.</li><li><strong>Individual actions:</strong> test forward, reverse, both strafes, and both rotation directions at low power. Check telemetry against the command table before changing signs.</li><li><strong>Combined actions:</strong> test diagonals and translation with rotation. Confirm power magnitudes stay bounded and steering remains predictable.</li><li><strong>Slow mode:</strong> hold and release the bumper. Confirm telemetry changes ON/OFF and power scales to 0.4 of the normal command for the same inputs.</li><li><strong>STOP and restart:</strong> verify motion ceases promptly, then reinitialize and retest. Record tested conditions, observed behavior, and remaining limitations with the change.</li></ol>
+</section>
+<section id="troubleshooting">
+<h2>09 / Troubleshooting</h2>
+<details open><summary>The build stops before compiling</summary><p>Check Java availability first (<code>java -version</code> and JAVA_HOME), then Android SDK location, required packages, and dependency network access. Use the checked-in wrapper. This guide's build attempt stopped at the Java check; later stages were not reached.</p></details>
+<details><summary>Prototype TeleOp does not appear</summary><p>Check that the class is in TeamCode, has the expected <code>@TeleOp</code> annotation, and is not disabled. Confirm that a successfully rebuilt TeamCode APK was installed on the intended controller and that the Driver Station is connected to it.</p></details>
+<details><summary>INIT reports a missing device</summary><p>Compare the exact hardwareMap name and expected DcMotor type against the active controller configuration. Check spelling and case, and confirm the correct configuration is selected. The source alone cannot identify the right physical port.</p></details>
+<details><summary>One wheel or one movement axis is wrong</summary><p>Verify logical-to-physical wheel mapping, wheel roller layout, and motor directions first. Then compare the joystick sign transforms and mixing equations. This robot deliberately uses three reversed motors and an inverted strafe input; changing several signs at once makes the fault harder to isolate.</p></details>
+<details><summary>The robot drifts or does not travel straight</summary><p>Check mechanical friction, traction, wheel orientation, loading, and motor consistency. The current drive is open loop; equal power does not guarantee equal wheel speed or distance. The strafe correction is a fixed tuning factor, not measured position correction.</p></details>
+<details><summary>SDK examples compile but the team's feature is absent</summary><p>Samples are reference programs, many disabled by annotation. Copy and adapt a sample into TeamCode, configure the actual hardware, and enable only the intended OpMode. Including Vision or other SDK dependencies does not itself add a team vision or autonomous feature.</p></details>
+</section>
+<section id="next">
+<h2>10 / Future development</h2>
+<p>The current design is small enough to read end to end. Expand it when there is a concrete robot requirement:</p>
+<ul><li><strong>Shared hardware setup:</strong> extract common mapping and initialization when multiple OpModes need the same robot.</li><li><strong>Drive calculation helper:</strong> separate arithmetic from hardware writes when independent math tests or reuse becomes useful.</li><li><strong>Mechanisms:</strong> introduce clear ownership of each motor/servo and define limits, controller mappings, and shutdown behavior.</li><li><strong>Autonomous:</strong> add an <code>@Autonomous</code> entry point with bounded actions and stop checks, then choose sensing and localization to match the task.</li><li><strong>Field-relative driving:</strong> requires an IMU, configured mounting orientation, a heading reference, and a coordinate transform; it is not a parameter switch in the current code.</li><li><strong>Vision:</strong> requires a configured camera, processing setup, and decisions about how detections affect control. Adapt the SDK 12.0 samples rather than assuming older AprilTag APIs still match.</li></ul>
+<p>These are possible extensions, not existing subsystems or a required roadmap. The SDK README documents a 12.0 breaking change in AprilTag detection handling for single tags versus clusters; consult that release information before adapting older vision code.</p>
+</section>
+<section id="sources">
+<h2>11 / Source references</h2>
+<p>This guide was derived from checked-in source and configuration at <code>acdb6db</code>. Its links to repository files are relative, so it can be opened locally beside the source without a server or internet connection. There are no external fonts, scripts, or image dependencies.</p>
+<ul><li><a href="TeamCode/src/main/java/org/firstinspires/ftc/teamcode/PrototypeTeleOp.java">PrototypeTeleOp.java</a> — definitive current robot behavior.</li><li><a href="README.md">SDK README and release notes</a> — season, Android Studio requirement, tutorials, SDK changes.</li><li><a href="TeamCode/src/main/java/org/firstinspires/ftc/teamcode/readme.md">TeamCode template guide</a> — copying and enabling samples; its “empty module” statement is outdated.</li><li><a href="FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/internal/FtcRobotControllerActivity.java">FtcRobotControllerActivity.java</a> — class discovery, hardware configuration, event-loop setup.</li><li><a href="FtcRobotController/src/main/java/org/firstinspires/ftc/robotcontroller/internal/FtcOpModeRegister.java">FtcOpModeRegister.java</a> — preferred annotation registration.</li><li><a href="build.common.gradle">Shared build settings</a>, <a href="build.dependencies.gradle">dependencies</a>, and <a href="TeamCode/build.gradle">application module</a> — build architecture and pinned settings.</li><li><a href="LICENSE">LICENSE</a> and <a href="doc/legal/">legal documents</a> — redistribution and attribution references.</li></ul>
+<p>For further reading, the SDK README links to <a href="https://ftc-docs.firstinspires.org/">FIRST's FTC documentation</a> and the <a href="https://javadoc.io/doc/org.firstinspires.ftc">FTC SDK Java API reference</a>. These are external resources; this guide does not claim to have verified their current contents.</p>
+</section>
+<footer>28150 BIOBUZZ repository guide · Update this document when controls, hardware names, build settings, or the development workflow change.</footer>
+</main>
+</div>
+</body>
+</html>
