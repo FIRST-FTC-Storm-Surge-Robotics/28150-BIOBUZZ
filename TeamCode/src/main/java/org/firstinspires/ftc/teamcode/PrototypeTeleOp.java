@@ -102,6 +102,14 @@ public class PrototypeTeleOp extends LinearOpMode {
             }
             telemetry.update();
         }
+
+        stopAllMotors();
+    }
+
+    private void stopAllMotors() {
+        for (DcMotor motor : new DcMotor[]{frontLeftDrive, frontRightDrive, backLeftDrive, backRightDrive}) {
+            motor.setPower(0);
+        }
     }
 
     // Tiny stick readings become 0. The rest of the stick is stretched so a full push is still full power.
