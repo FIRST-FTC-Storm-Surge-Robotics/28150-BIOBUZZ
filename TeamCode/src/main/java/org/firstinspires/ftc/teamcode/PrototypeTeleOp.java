@@ -104,6 +104,7 @@ public class PrototypeTeleOp extends OpMode {
             telemetry.addLine("Stick is reading as fully pressed, so the wheels are held off.");
             telemetry.addLine("Let go of both sticks. If the numbers stay near 1 or -1, unplug the controller and plug it back in.");
         }
+        telemetry.update();
     }
 
     @Override
