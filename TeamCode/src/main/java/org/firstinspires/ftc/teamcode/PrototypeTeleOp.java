@@ -20,6 +20,11 @@ public class PrototypeTeleOp extends OpMode {
     static final double STRAFE_CORRECTION = 1.1;
     // Sticks rarely rest at exactly 0. Readings smaller than this are treated as "hands off."
     static final double STICK_DEADZONE = 0.1;
+    // The first loops often report 0 before the real stick positions arrive.
+    // Don't count those toward "the sticks are centered."
+    static final int STARTUP_LOOPS_TO_IGNORE = 10;
+    // Sticks must stay inside the deadzone this many loops in a row before the wheels can move.
+    static final int CENTERED_LOOPS_NEEDED = 10;
 
     private DcMotor frontLeftDrive;
     private DcMotor frontRightDrive;
@@ -27,8 +32,10 @@ public class PrototypeTeleOp extends OpMode {
     private DcMotor backRightDrive;
 
     // Some controllers treat "center" as wherever the sticks were when they were plugged in.
-    // If a stick was held, it keeps reporting full press. Stay stopped until we see center.
+    // If a stick was held, it keeps reporting a full push. Stay stopped until we see a real center.
     private boolean sticksHaveCentered = false;
+    private int centeredLoopCount = 0;
+    private int loopsSinceStart = 0;
 
     @Override
     public void init() {
@@ -39,8 +46,9 @@ public class PrototypeTeleOp extends OpMode {
 
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
-        frontRightDrive.setDirection(DcMotor.Direction.REVERSE);
-        backRightDrive.setDirection(DcMotor.Direction.FORWARD);
+        // Right side was spinning backward, so forward and turn were swapped.
+        frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
+        backRightDrive.setDirection(DcMotor.Direction.REVERSE);
 
         for (DcMotor motor : new DcMotor[]{frontLeftDrive, frontRightDrive, backLeftDrive, backRightDrive}) {
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -48,24 +56,46 @@ public class PrototypeTeleOp extends OpMode {
             motor.setPower(0);
         }
 
-        telemetry.addLine("Initialized. Press START.");
+        telemetry.addLine("Initialized. Wheels are stopped. Press START.");
+    }
+
+    @Override
+    public void init_loop() {
+        // Keep commanding 0 the whole time the robot sits on the init screen.
+        stopAllMotors();
+        telemetry.addLine("Initialized. Wheels are stopped. Press START.");
     }
 
     @Override
     public void start() {
         sticksHaveCentered = false;
+        centeredLoopCount = 0;
+        loopsSinceStart = 0;
     }
 
     @Override
     public void loop() {
+        loopsSinceStart++;
+
         double rawForward = -gamepad1.left_stick_y;
         double rawStrafe = gamepad1.left_stick_x;
         double rawTurn = gamepad1.right_stick_x;
 
-        if (Math.abs(rawForward) < STICK_DEADZONE
+        boolean sticksLookCentered = Math.abs(rawForward) < STICK_DEADZONE
                 && Math.abs(rawStrafe) < STICK_DEADZONE
-                && Math.abs(rawTurn) < STICK_DEADZONE) {
-            sticksHaveCentered = true;
+                && Math.abs(rawTurn) < STICK_DEADZONE;
+
+        if (!sticksHaveCentered) {
+            // One early reading of 0 is not enough. A stuck stick shows up right after that
+            // and would otherwise send the robot off at full power.
+            if (loopsSinceStart > STARTUP_LOOPS_TO_IGNORE && sticksLookCentered) {
+                centeredLoopCount++;
+                if (centeredLoopCount >= CENTERED_LOOPS_NEEDED) {
+                    sticksHaveCentered = true;
+                }
+            } else {
+                centeredLoopCount = 0;
+            }
         }
 
         double y = 0;
@@ -74,7 +104,7 @@ public class PrototypeTeleOp extends OpMode {
         if (sticksHaveCentered) {
             // Pushing the left stick forward reports a negative number, so rawForward is already flipped.
             y = applyDeadzone(rawForward);
-            // Negated because this drivetrain strafes opposite to the standard mecanum layout.
+            // Negated so the robot strafes the same way the left stick is pushed.
             x = -applyDeadzone(rawStrafe) * STRAFE_CORRECTION;
             rx = applyDeadzone(rawTurn);
         }
@@ -100,9 +130,12 @@ public class PrototypeTeleOp extends OpMode {
         telemetry.addLine();
         if (sticksHaveCentered) {
             telemetry.addLine("Hold RB: slow mode");
+        } else if (sticksLookCentered) {
+            telemetry.addLine("Wheels are held off until the sticks stay centered.");
+            telemetry.addData("Centered readings", "%d / %d", centeredLoopCount, CENTERED_LOOPS_NEEDED);
         } else {
-            telemetry.addLine("Stick is reading as fully pressed, so the wheels are held off.");
-            telemetry.addLine("Let go of both sticks. If the numbers stay near 1 or -1, unplug the controller and plug it back in.");
+            telemetry.addLine("A stick still looks pushed, so the wheels are held off.");
+            telemetry.addLine("Let go of both sticks. If a number stays near 1 or -1, unplug the controller and plug it back in with the sticks centered.");
         }
         telemetry.update();
     }
