@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
  *   Left stick         - drive forward/back and strafe (relative to the robot)
  *   Right stick X      - rotate
  *   Hold right bumper  - slow mode
+ *   B                  - toggle the intake on or off
  */
 @TeleOp(name = "Prototype TeleOp", group = "Prototype")
 public class PrototypeTeleOp extends OpMode {
@@ -25,11 +26,18 @@ public class PrototypeTeleOp extends OpMode {
     static final int STARTUP_LOOPS_TO_IGNORE = 10;
     // Sticks must stay inside the deadzone this many loops in a row before the wheels can move.
     static final int CENTERED_LOOPS_NEEDED = 10;
+    // Power used while the intake is toggled on.
+    static final double INTAKE_POWER = .3;
 
     private DcMotor frontLeftDrive;
     private DcMotor frontRightDrive;
     private DcMotor backLeftDrive;
     private DcMotor backRightDrive;
+    private DcMotor intakeMotor;
+
+    private boolean intakeOn = false;
+    // B stays true for many loops while it is held. Only the first loop should flip the intake.
+    private boolean bWasPressed = false;
 
     // Some controllers treat "center" as wherever the sticks were when they were plugged in.
     // If a stick was held, it keeps reporting a full push. Stay stopped until we see a real center.
@@ -43,6 +51,7 @@ public class PrototypeTeleOp extends OpMode {
         frontRightDrive = hardwareMap.get(DcMotor.class, "frontRightDrive");
         backLeftDrive = hardwareMap.get(DcMotor.class, "backLeftDrive");
         backRightDrive = hardwareMap.get(DcMotor.class, "backRightDrive");
+        intakeMotor = hardwareMap.get(DcMotor.class, "intakeMotor");
 
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
@@ -50,7 +59,8 @@ public class PrototypeTeleOp extends OpMode {
         frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
         backRightDrive.setDirection(DcMotor.Direction.REVERSE);
 
-        for (DcMotor motor : new DcMotor[]{frontLeftDrive, frontRightDrive, backLeftDrive, backRightDrive}) {
+        intakeMotor.setDirection(DcMotor.Direction.FORWARD);
+        for (DcMotor motor : new DcMotor[]{frontLeftDrive, frontRightDrive, backLeftDrive, backRightDrive, intakeMotor}) {
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             motor.setPower(0);
@@ -71,6 +81,8 @@ public class PrototypeTeleOp extends OpMode {
         sticksHaveCentered = false;
         centeredLoopCount = 0;
         loopsSinceStart = 0;
+        intakeOn = false;
+        bWasPressed = false;
     }
 
     @Override
@@ -122,14 +134,22 @@ public class PrototypeTeleOp extends OpMode {
         frontRightDrive.setPower(frontRightPower);
         backRightDrive.setPower(backRightPower);
 
+        boolean bPressed = gamepad1.b;
+        if (bPressed && !bWasPressed) {
+            intakeOn = !intakeOn;
+        }
+        bWasPressed = bPressed;
+        intakeMotor.setPower(intakeOn ? INTAKE_POWER : 0);
+
         telemetry.addData("Slow mode", slowMode ? "ON" : "OFF");
+        telemetry.addData("Intake", intakeOn ? "ON" : "OFF");
         telemetry.addData("Left stick x / y", "%.2f / %.2f", gamepad1.left_stick_x, gamepad1.left_stick_y);
         telemetry.addData("Right stick x", "%.2f", gamepad1.right_stick_x);
         telemetry.addData("Front L/R", "%.2f / %.2f", frontLeftPower, frontRightPower);
         telemetry.addData("Back  L/R", "%.2f / %.2f", backLeftPower, backRightPower);
         telemetry.addLine();
         if (sticksHaveCentered) {
-            telemetry.addLine("Hold RB: slow mode");
+            telemetry.addLine("Hold RB: slow mode. Press B: intake");
         } else if (sticksLookCentered) {
             telemetry.addLine("Wheels are held off until the sticks stay centered.");
             telemetry.addData("Centered readings", "%d / %d", centeredLoopCount, CENTERED_LOOPS_NEEDED);
@@ -146,7 +166,7 @@ public class PrototypeTeleOp extends OpMode {
     }
 
     private void stopAllMotors() {
-        for (DcMotor motor : new DcMotor[]{frontLeftDrive, frontRightDrive, backLeftDrive, backRightDrive}) {
+        for (DcMotor motor : new DcMotor[]{frontLeftDrive, frontRightDrive, backLeftDrive, backRightDrive, intakeMotor}) {
             motor.setPower(0);
         }
     }
